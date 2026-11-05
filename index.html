@@ -132,6 +132,9 @@ kbd { display: inline-block; min-width: 1.9em; padding: 0.12em 0.45em; text-alig
 #picker .ps u { display: block; height: 100%; background: var(--amber); border-radius: 3px; transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
 #picker .ps b { text-align: right; font-weight: 700; letter-spacing: 0.03em; text-transform: none; color: var(--text); }
 #picker .pf { font: 600 11px/1 var(--mono); letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+#picker .pload { flex: none; font: 700 10px/1 var(--mono); letter-spacing: 0.16em; color: var(--amber); animation: pblink 1s ease-in-out infinite; } #picker .pload[hidden] { display: none; }
+@keyframes pblink { 50% { opacity: 0.3; } }
+#picker .pcredit { font: 500 10px/1.35 var(--mono); letter-spacing: 0.03em; color: var(--dim); } #picker .pcredit a { color: inherit; text-decoration: underline; text-decoration-color: rgba(240, 232, 208, 0.35); text-underline-offset: 2px; }
 #picker .pswatches { grid-area: sw; display: flex; flex-wrap: wrap; gap: 7px; align-content: end; padding-top: 8px; }
 #picker .psw { appearance: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid transparent; box-shadow: 0 0 0 1px rgba(240, 232, 208, 0.4); cursor: pointer; }
 #picker .psw.on { border-color: #fff; box-shadow: 0 0 0 2px var(--amber); }
@@ -1200,8 +1203,8 @@ return { Car, World, Body, SPEC, SURF, torqueAt, G, clamp, lerp, smooth, approac
 });
 
 /* ---- vehicles.js ---- */
-/* The garage: eight vehicles, each with its own engine, gearbox, weight, tyres and handling, plus how they behave when
-   they show up as highway traffic. Pure data and one helper that writes a vehicle into the physics spec; runs in node too. */
+/* The garage: five real cars plus eight built-in vehicles, each with its own engine, gearbox, weight, tyres and handling, plus how the
+   built-in ones behave as highway traffic. Pure data and one helper that writes a vehicle into the physics spec; runs in node too. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./physics.js'));
   else root.Vehicles = factory(root.DriftPhysics);
@@ -1228,7 +1231,70 @@ function outline(x0, x1, hw) {
   return { colX: xs, colR: +r.toFixed(3) };
 }
 
+/* The first five are real cars, scanned 3D models loaded from models/<id>.glb.txt (the .glb as base64 text: the page host only serves text, image, font and media files; see realcar.js); they are the player's garage and never appear as
+   traffic. `real.fallback` is the built-in car drawn instead if the file cannot be fetched. Dimensions and cameras are in the physics frame
+   (x forward from the centre of gravity, metres); figures are the manufacturers' published ones. */
 const LIST = [
+  { id: 'e92', real: { glb: 'models/e92.glb.txt', fallback: 'kaze', credit: { by: 'Ddiaz Design', lic: 'CC BY-NC-SA 4.0', licUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/', url: 'https://sketchfab.com/3d-models/2010-bmw-m3-e92-14f97cec80fe4ecd9bd48f3b47bceaad' } },
+    stats: { z100: 4.8, top: 250 }, name: 'BMW M3', cls: 'E92 coupe · 2010', drive: 'rwd', blurb: 'Naturally aspirated 4.0 litre V8 that screams to 8,400 rpm. Rear-wheel drive with a locking M differential: a proper drift weapon.',
+    dims: { x0: -2.456, x1: 2.159, hw: 0.91, h: 1.404 }, paint: 0xc4101f,
+    traffic: { w: 0, v: [110, 140], acc: 3 },
+    cam: { dist: 6.4, height: 1.9, look: 3.4, lookH: 0.95, farDist: 10.5, farHeight: 4.0, hood: [1.28, 1.1, 0], cock: [-0.152, 1.169, -0.36] },
+    spec: { mass: 1700, Iz: 2700, L: 2.758, a: 1.352, b: 1.406, trackF: 1.52, trackR: 1.543, h: 0.5, R: 0.3265, wheelI: [1.4, 1.4, 1.8, 1.8], engineI: 0.22,
+      cdA: 0.66, clA: 0.1, crr: 0.011, ratios: [4.06, 2.40, 1.58, 1.19, 1.00, 0.87], final: 3.85, reverse: 3.5,
+      idle: 1000, redline: 8300, limit: 8400, tq: curve(400, 3900, 8400, 1000, 0.55, 0.885),
+      brakeTotal: 7600, brakeFront: 0.66, handbrakeTorque: 1700, lsdK: 190, lsdMax: 1600, rollFront: 0.53,
+      steerLock: 0.6, maxSteer: 0.7, steerInRate: 5.2,
+      upBase: 6800, upThr: 1500, dnBase: 3300, dnThr: 3200, shiftUpTime: 0.12, shiftDnTime: 0.08, vmax: 252,
+      tire: { mu: [1.1, 1.1, 1.3, 1.3], Fz0: 4200 } } },
+  { id: 'm4', real: { glb: 'models/m4.glb.txt', fallback: 'kaze', credit: { by: 'Ddiaz Design', lic: 'CC BY-NC-SA 4.0', licUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/', url: 'https://sketchfab.com/3d-models/2025-bmw-m4-competition-f8141ecd755547989c9209784b71ad43' } },
+    stats: { z100: 3.5, top: 250 }, name: 'BMW M4', cls: 'Competition coupe · 2025', drive: 'rwd', blurb: 'Twin-turbo straight-six with 503 hp and an eight-speed auto, all of it through the rear wheels. Fast, wide and very happy sideways.',
+    dims: { x0: -2.531, x1: 2.263, hw: 0.944, h: 1.399 }, paint: 0x15335e,
+    traffic: { w: 0, v: [110, 140], acc: 3 },
+    cam: { dist: 6.6, height: 1.95, look: 3.4, lookH: 0.95, farDist: 10.8, farHeight: 4.1, hood: [1.385, 1.11, 0], cock: [-0.045, 1.164, -0.36] },
+    spec: { enginePower: 0.97, mass: 1780, Iz: 2950, L: 2.851, a: 1.397, b: 1.454, trackF: 1.599, trackR: 1.583, h: 0.52, R: 0.3485, wheelI: [1.6, 1.6, 2.1, 2.1], engineI: 0.24,
+      cdA: 0.76, clA: 0.14, crr: 0.011, ratios: [5.00, 3.20, 2.14, 1.72, 1.31, 1.00, 0.82, 0.64], final: 3.15, reverse: 3.7,
+      idle: 750, redline: 7000, limit: 7200, tq: curve(650, 4500, 7200, 750, 0.55, 0.78),
+      brakeTotal: 8600, brakeFront: 0.66, handbrakeTorque: 1800, lsdK: 190, lsdMax: 1700, rollFront: 0.53,
+      steerLock: 0.58, maxSteer: 0.68, steerInRate: 5.2,
+      upBase: 5600, upThr: 1400, dnBase: 2600, dnThr: 2800, shiftUpTime: 0.09, shiftDnTime: 0.07, vmax: 252,
+      tire: { mu: [1.14, 1.14, 1.32, 1.32], Fz0: 4500 } } },
+  { id: 'elantra', real: { glb: 'models/elantra.glb.txt', fallback: 'meridian', credit: { by: 'lucillehowefrl', lic: 'CC BY 4.0', licUrl: 'https://creativecommons.org/licenses/by/4.0/', url: 'https://sketchfab.com/3d-models/2025-hyundai-elantra-fe9882284c6b43ffbf671d6a28022b33' } },
+    stats: { z100: 5.3, top: 250 }, name: 'Elantra N', cls: 'Hyundai sedan · 2025', drive: 'fwd', blurb: 'Turbo four with 276 hp, a quick dual-clutch box and a limited-slip front axle. The family sedan that plays dirty.',
+    dims: { x0: -2.708, x1: 2.012, hw: 0.91, h: 1.419 }, paint: 0xeceeef,
+    traffic: { w: 0, v: [100, 130], acc: 2.4 },
+    cam: { dist: 6.5, height: 1.95, look: 3.4, lookH: 0.95, farDist: 10.6, farHeight: 4.0, hood: [1.272, 1.07, 0], cock: [-0.158, 1.18, -0.36] },
+    spec: { driveFront: 1, mass: 1560, Iz: 2450, L: 2.732, a: 1.093, b: 1.639, trackF: 1.569, trackR: 1.554, h: 0.52, R: 0.33, wheelI: [1.4, 1.4, 1.7, 1.7], engineI: 0.19,
+      cdA: 0.64, clA: 0.12, crr: 0.011, ratios: [4.80, 3.30, 2.30, 1.70, 1.32, 1.00, 0.83, 0.68], final: 3.55, reverse: 3.5,
+      idle: 800, redline: 6500, limit: 6800, tq: curve(392, 4200, 6800, 800, 0.62, 0.66),
+      brakeTotal: 6900, brakeFront: 0.7, handbrakeTorque: 1600, lsdK: 100, lsdMax: 1000, rollFront: 0.58,
+      steerLock: 0.62, maxSteer: 0.7, steerInRate: 5.2,
+      upBase: 5300, upThr: 1200, dnBase: 2300, dnThr: 2400, shiftUpTime: 0.1, shiftDnTime: 0.07, vmax: 250,
+      tire: { mu: [1.24, 1.24, 1.12, 1.12], Fz0: 3800 } } },
+  { id: 'x5', real: { glb: 'models/x5.glb.txt', fallback: 'ridgeback', credit: { by: 'Ddiaz Design', lic: 'CC BY-NC-SA 4.0', licUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/', url: 'https://sketchfab.com/3d-models/2019-bmw-x5-xdrive30d-850fb32f984c4630969840fc61f44902' } },
+    stats: { z100: 6.5, top: 230 }, name: 'BMW X5', cls: 'xDrive30d SUV · 2019', drive: 'awd', blurb: 'Big diesel straight-six with a wall of torque and rear-biased all-wheel drive. Heavy and tall, but it still hangs its tail out.',
+    dims: { x0: -2.558, x1: 2.364, hw: 1.0, h: 1.778 }, paint: 0x6e7378,
+    traffic: { w: 0, v: [100, 126], acc: 2 },
+    cam: { dist: 7.0, height: 2.35, look: 3.5, lookH: 1.2, farDist: 11.4, farHeight: 4.6, hood: [1.577, 1.32, 0], cock: [0.147, 1.5, -0.37] },
+    spec: { driveFront: 0.3, mass: 2150, Iz: 4070, L: 2.968, a: 1.484, b: 1.484, trackF: 1.671, trackR: 1.674, h: 0.68, R: 0.3736, wheelI: [2.2, 2.2, 2.6, 2.6], engineI: 0.3,
+      cdA: 0.95, clA: 0, crr: 0.013, ratios: [5.00, 3.20, 2.14, 1.72, 1.31, 1.00, 0.82, 0.64], final: 2.9, reverse: 3.4,
+      idle: 700, redline: 4800, limit: 5000, tq: curve(620, 2300, 5000, 700, 0.55, 0.4),
+      brakeTotal: 9000, brakeFront: 0.66, handbrakeTorque: 2000, lsdMax: 1200, rollFront: 0.6,
+      steerLock: 0.58, maxSteer: 0.64, steerInRate: 4, steerRateRaw: 3.2, driftRear: 0.15, driftKick: 0.3,
+      upBase: 3500, upThr: 1100, dnBase: 1500, dnThr: 1900, shiftUpTime: 0.14, shiftDnTime: 0.1, vmax: 232,
+      tire: { mu: [0.99, 0.99, 1.01, 1.01], Fz0: 5300 } } },
+  { id: 'urus', real: { glb: 'models/urus.glb.txt', fallback: 'ridgeback', credit: { by: 'Ddiaz Design', lic: 'CC BY-NC-SA 4.0', licUrl: 'https://creativecommons.org/licenses/by-nc-sa/4.0/', url: 'https://sketchfab.com/3d-models/2019-lamborghini-urus-9ef2fd625ba54ea39226ea5d043c0e13' } },
+    stats: { z100: 3.6, top: 305 }, name: 'Urus', cls: 'Lamborghini super SUV · 2019', drive: 'awd', blurb: 'Twin-turbo V8, 641 hp and all-wheel drive with a rear bias. Two and a quarter tonnes that launch like a supercar.',
+    dims: { x0: -2.57, x1: 2.54, hw: 1.01, h: 1.671 }, paint: 0xf1b200,
+    traffic: { w: 0, v: [110, 140], acc: 3 },
+    cam: { dist: 7.0, height: 2.25, look: 3.5, lookH: 1.1, farDist: 11.4, farHeight: 4.5, hood: [1.524, 1.34, 0], cock: [0.094, 1.41, -0.37] },
+    spec: { driveFront: 0.4, mass: 2280, Iz: 4435, L: 3.009, a: 1.475, b: 1.534, trackF: 1.677, trackR: 1.674, h: 0.7, R: 0.3945, wheelI: [2.6, 2.6, 3.1, 3.1], engineI: 0.28,
+      cdA: 1.0, clA: 0.1, crr: 0.013, ratios: [4.70, 3.13, 2.10, 1.67, 1.29, 1.00, 0.84, 0.67], final: 3.6, reverse: 3.5,
+      idle: 750, redline: 6600, limit: 6800, tq: curve(850, 4300, 6800, 750, 0.55, 0.76),
+      brakeTotal: 10600, brakeFront: 0.66, handbrakeTorque: 2100, lsdK: 150, lsdMax: 1500, rollFront: 0.6,
+      steerLock: 0.56, maxSteer: 0.64, steerInRate: 4.2, steerRateRaw: 3.3, driftRear: 0.15, driftKick: 0.3,
+      upBase: 5400, upThr: 1100, dnBase: 2400, dnThr: 2600, shiftUpTime: 0.1, shiftDnTime: 0.08, vmax: 306,
+      tire: { mu: [1.1, 1.1, 1.18, 1.18], Fz0: 5700 } } },
   { id: 'kaze', stats: { z100: 4.3, top: 279 }, name: 'Kaze GT-S', cls: 'Sports coupe', drive: 'awd', blurb: 'Light all-wheel-drive coupe. Grips like glue, slides the moment you hold Shift.',
     dims: { x0: -2.142, x1: 2.208, hw: 0.905, h: 1.33 }, paint: 0xeceeef,
     traffic: { w: 0.07, v: [112, 150], acc: 3.0 },
@@ -3349,6 +3415,7 @@ function create(map, world, scene, env, cfg) {
   const trailerM = new THREE.MeshStandardMaterial(Object.assign({ color: 0xffffff, metalness: 0.2, roughness: 0.55, envMap: env, envMapIntensity: 0.6 }, SIDE));
   T.setNight = (a) => { const k = 0.35 + 0.65 * a; headM.color.setRGB(1.3 * k + 0.2, 1.25 * k + 0.2, 1.1 * k + 0.2); };
   for (const v of V.list) {
+    if (v.real) continue;                                      // real cars are for the player: only the built-in vehicles drive the highway
     const tp = CarModel.trafficParts(v.id), k = { list: [] };
     const im = (geo, m, cast, color) => { if (!geo) return null; const x = new THREE.InstancedMesh(geo, m, MAXN); if (color) { x.setColorAt(0, new THREE.Color(1, 1, 1)); x.instanceColor.setUsage(THREE.DynamicDrawUsage); } x.instanceMatrix.setUsage(THREE.DynamicDrawUsage); x.count = 0; x.frustumCulled = false; x.castShadow = !!cast; x.receiveShadow = true; scene.add(x); return x; };
     k.paint = im(tp.paint, paintM, true, true); k.glass = im(tp.glass, glassM, false); k.dark = im(tp.dark, darkM, true); k.head = im(tp.head, headM, false);
@@ -4459,6 +4526,269 @@ function peek(id, d) {
 return { create, keyName, peek };
 })();
 
+/* ---- glbload.js ---- */
+/* Minimal glTF 2.0 binary (.glb) loader for the real-car models: node tree, meshes (POSITION / NORMAL / TEXCOORD_0 / indices),
+   PBR materials and embedded JPEG / PNG textures. No extensions, animation or skins; written so the page needs no external loader. */
+const GLBLoader = (function () {
+'use strict';
+const TA = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array };
+const NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
+const GET = { 5120: 'getInt8', 5121: 'getUint8', 5122: 'getInt16', 5123: 'getUint16', 5125: 'getUint32', 5126: 'getFloat32' };
+
+function parse(buf) {
+  const dv = new DataView(buf);
+  if (dv.getUint32(0, true) !== 0x46546C67) throw new Error('not a .glb file');
+  let off = 12, json = null, bin = null;
+  while (off + 8 <= buf.byteLength) {
+    const len = dv.getUint32(off, true), type = dv.getUint32(off + 4, true);
+    if (type === 0x4E4F534A) json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, off + 8, len)));
+    else if (type === 0x004E4942) bin = buf.slice(off + 8, off + 8 + len);
+    off += 8 + len;
+  }
+  if (!json) throw new Error('glb without json');
+  return { json, bin: bin || new ArrayBuffer(0) };
+}
+
+function accessor(J, bin, idx) {
+  const a = J.accessors[idx], T = TA[a.componentType], n = NC[a.type], bv = J.bufferViews[a.bufferView];
+  const off = (bv.byteOffset || 0) + (a.byteOffset || 0), esz = T.BYTES_PER_ELEMENT * n, stride = bv.byteStride || esz;
+  if (stride === esz && off % T.BYTES_PER_ELEMENT === 0) return { array: new T(bin, off, a.count * n), n, normalized: !!a.normalized };
+  const out = new T(a.count * n), dv = new DataView(bin), g = GET[a.componentType], sz = T.BYTES_PER_ELEMENT;
+  for (let i = 0; i < a.count; i++) for (let k = 0; k < n; k++) out[i * n + k] = dv[g](off + i * stride + k * sz, true);
+  return { array: out, n, normalized: !!a.normalized };
+}
+
+function loadImage(J, bin, i) {                                     // a missing or undecodable texture gives null (the material just goes without it)
+  const im = J.images[i], bv = J.bufferViews[im.bufferView];
+  if ((bv.byteOffset || 0) + bv.byteLength > bin.byteLength) { console.warn('texture ' + i + ' is cut off in the file'); return Promise.resolve(null); }
+  const url = URL.createObjectURL(new Blob([new Uint8Array(bin, bv.byteOffset || 0, bv.byteLength)], { type: im.mimeType || 'image/jpeg' }));
+  return new Promise((res) => {
+    const img = new Image(); img.onload = () => { URL.revokeObjectURL(url); res(img); }; img.onerror = () => { URL.revokeObjectURL(url); console.warn('texture ' + i + ' failed to decode'); res(null); }; img.src = url;
+  });
+}
+
+/* returns { root, json, materials, nodes } ; opts: { anisotropy } */
+async function build(buf, opts) {
+  opts = opts || {};
+  const { json: J, bin } = parse(buf);
+  /* textures, decoded in parallel (only the images something actually uses) */
+  const used = new Set();
+  for (const m of J.materials || []) {
+    const p = m.pbrMetallicRoughness || {};
+    for (const t of [p.baseColorTexture, p.metallicRoughnessTexture, m.normalTexture, m.emissiveTexture]) if (t) used.add(t.index);
+  }
+  const imgOf = {};
+  await Promise.all([...used].map(async (ti) => { const src = J.textures[ti].source; if (!(src in imgOf)) imgOf[src] = await loadImage(J, bin, src); }));
+  const texCache = {};
+  function texture(ref, srgb) {
+    if (!ref) return null;
+    const key = ref.index + (srgb ? 's' : 'l');
+    if (texCache[key]) return texCache[key];
+    const td = J.textures[ref.index], sm = td.sampler != null && J.samplers ? J.samplers[td.sampler] : {};
+    if (!imgOf[td.source]) return null;
+    const t = new THREE.Texture(imgOf[td.source]);
+    t.flipY = false; t.encoding = srgb ? THREE.sRGBEncoding : THREE.LinearEncoding;
+    const wrap = (w) => (w === 33071 ? THREE.ClampToEdgeWrapping : w === 33648 ? THREE.MirroredRepeatWrapping : THREE.RepeatWrapping);
+    t.wrapS = wrap(sm.wrapS); t.wrapT = wrap(sm.wrapT);
+    t.anisotropy = opts.anisotropy || 1; t.needsUpdate = true;
+    return (texCache[key] = t);
+  }
+  /* materials */
+  const mats = (J.materials || []).map((m) => {
+    const p = m.pbrMetallicRoughness || {}, bc = p.baseColorFactor || [1, 1, 1, 1];
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(bc[0], bc[1], bc[2]), roughness: p.roughnessFactor != null ? p.roughnessFactor : 1, metalness: p.metallicFactor != null ? p.metallicFactor : 1,
+      side: m.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
+    });
+    mat.name = m.name || '';
+    mat.map = texture(p.baseColorTexture, true);
+    if (p.metallicRoughnessTexture) { const t = texture(p.metallicRoughnessTexture, false); mat.roughnessMap = t; mat.metalnessMap = t; }
+    if (m.normalTexture) { mat.normalMap = texture(m.normalTexture, false); const s = m.normalTexture.scale != null ? m.normalTexture.scale : 1; mat.normalScale.set(s, s); }
+    const em = m.emissiveFactor || [0, 0, 0];
+    mat.emissive = new THREE.Color(em[0], em[1], em[2]);
+    if (m.emissiveTexture) { mat.emissiveMap = texture(m.emissiveTexture, true); if (!m.emissiveFactor) mat.emissive.setRGB(1, 1, 1); }
+    if (m.alphaMode === 'BLEND') { mat.transparent = true; mat.opacity = bc[3]; mat.depthWrite = false; }
+    else if (m.alphaMode === 'MASK') { mat.alphaTest = m.alphaCutoff != null ? m.alphaCutoff : 0.5; }
+    mat.userData = Object.assign({}, m.extras || {});
+    return mat;
+  });
+  /* meshes: one THREE.Mesh per primitive */
+  const geoCache = {};
+  function primitives(mi) {
+    const mesh = J.meshes[mi], out = [];
+    mesh.primitives.forEach((pr, pi) => {
+      if (pr.mode != null && pr.mode !== 4) return;
+      const key = mi + ':' + pi;
+      let g = geoCache[key];
+      if (!g) {
+        g = geoCache[key] = new THREE.BufferGeometry();
+        const at = pr.attributes, P = accessor(J, bin, at.POSITION);
+        g.setAttribute('position', new THREE.BufferAttribute(P.array, 3, P.normalized));
+        if (at.NORMAL != null) { const N = accessor(J, bin, at.NORMAL); g.setAttribute('normal', new THREE.BufferAttribute(N.array, 3, N.normalized)); }
+        if (at.TEXCOORD_0 != null) { const U = accessor(J, bin, at.TEXCOORD_0); g.setAttribute('uv', new THREE.BufferAttribute(U.array, 2, U.normalized)); }
+        if (pr.indices != null) { let I = accessor(J, bin, pr.indices).array; if (I instanceof Uint8Array) I = new Uint16Array(I); g.setIndex(new THREE.BufferAttribute(I, 1)); }
+        if (at.NORMAL == null) g.computeVertexNormals();
+      }
+      const m = new THREE.Mesh(g, pr.material != null ? mats[pr.material] : new THREE.MeshStandardMaterial({ color: 0x888888 }));
+      m.name = mesh.name || ''; out.push(m);
+    });
+    return out;
+  }
+  /* node tree */
+  const nodes = [];
+  function make(i) {
+    const nd = J.nodes[i], o = new THREE.Group();
+    o.name = nd.name || ''; o.userData = Object.assign({}, nd.extras || {});
+    if (nd.matrix) { const m = new THREE.Matrix4().fromArray(nd.matrix); m.decompose(o.position, o.quaternion, o.scale); }
+    else {
+      if (nd.translation) o.position.fromArray(nd.translation);
+      if (nd.rotation) o.quaternion.fromArray(nd.rotation);
+      if (nd.scale) o.scale.fromArray(nd.scale);
+    }
+    if (nd.mesh != null) for (const m of primitives(nd.mesh)) o.add(m);
+    for (const c of nd.children || []) o.add(make(c));
+    nodes[i] = o;
+    return o;
+  }
+  const root = new THREE.Group(); root.name = 'model';
+  for (const r of J.scenes[J.scene || 0].nodes) root.add(make(r));
+  return { root, json: J, materials: mats, nodes, extras: (J.asset && J.asset.extras) || {} };
+}
+
+async function load(url, opts) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + url);
+  return build(await r.arrayBuffer(), opts);
+}
+
+return { parse, build, load };
+})();
+
+/* ---- realcar.js ---- */
+/* Real cars: loads a converted .glb (X forward, Y up, Z right, metres, x = 0 mid-wheelbase, wheels as four hub-centred nodes, paint / glass /
+   lamp materials tagged by role) and turns it into the same visual object the built-in cars provide: root / pivot / wheels (steer + spin) /
+   paint / lamps. A model is fetched once, built once, and freed again when you drive something else. */
+const RealCar = (function () {
+'use strict';
+const lin = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+const raw = Object.create(null), pending = Object.create(null), done = Object.create(null);
+const MAPS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'alphaMap'];
+
+/* The page host only serves text, image, font and media files, so each model ships as its .glb bytes written in base64 (models/<id>.glb.txt).
+   A plain .glb url still works (served from a normal web server). */
+function b64bytes(s) {
+  const bin = atob(s), n = bin.length, u = new Uint8Array(n);                         // atob skips line breaks and spaces
+  for (let i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
+  return u.buffer;
+}
+
+/* start downloading a model without building anything yet (the first car loads while the renderer starts) */
+function prefetch(id, url) {
+  if (!raw[id]) raw[id] = fetch(url).then((r) => {
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + url);
+    return /\.txt$/i.test(url) ? r.text().then(b64bytes) : r.arrayBuffer();
+  });
+  return raw[id];
+}
+
+/* give the materials of a loaded model their in-game look, by role; returns the handles the game drives */
+function dress(model, opts) {
+  const env = opts.env, H = { paint: [], head: [], tail: [], glass: [], all: [] }, repl = new Map();
+  for (const m of model.materials) {
+    const role = m.userData.role;
+    let n = m;
+    if (role === 'paint') {
+      n = new THREE.MeshPhysicalMaterial({ color: lin(opts.paint != null ? opts.paint : 0xe9ebec), metalness: 0.32, roughness: 0.24, clearcoat: 1, clearcoatRoughness: 0.04, envMap: env, envMapIntensity: 1.3, side: m.side });
+      if (m.normalMap) { n.normalMap = m.normalMap; n.normalScale.copy(m.normalScale); }
+      H.paint.push(n);
+    } else if (role === 'glass') {
+      n = new THREE.MeshPhysicalMaterial({ color: lin(0x0a1117), metalness: 0.9, roughness: 0.05, envMap: env, envMapIntensity: 1.7, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.FrontSide });
+      H.glass.push(n);
+    } else {
+      m.envMap = env; m.envMapIntensity = 1.0;
+      if (role === 'head') { m.emissive.setRGB(1.0, 0.93, 0.8); if (m.map) m.emissiveMap = m.map; m.emissiveIntensity = 0; H.head.push(m); }
+      else if (role === 'tail') { m.emissive.setRGB(1.0, 0.05, 0.02); if (m.map) m.emissiveMap = m.map; m.emissiveIntensity = 0.25; H.tail.push(m); }
+    }
+    H.all.push(n);
+    repl.set(m, n);
+  }
+  model.root.traverse((o) => {
+    if (!o.isMesh) return;
+    if (repl.has(o.material)) o.material = repl.get(o.material);
+    o.castShadow = !o.material.transparent; o.receiveShadow = false;
+  });
+  return H;
+}
+
+function assemble(id, model, spec, opts) {
+  const H = dress(model, opts), car = model.root.children[0], info = model.json.nodes[model.json.scenes[0].nodes[0]].extras || {};
+  const hubs = info.hubs, dx = spec.a - (hubs[0].x + hubs[1].x) / 2;                // the front axle goes to x = +a (physics frame: x forward from the centre of gravity)
+  const root = new THREE.Group(), pivot = new THREE.Group(), body = new THREE.Group(); root.add(pivot); pivot.add(body); body.position.x = dx;
+  const find = (nm) => car.children.find((c) => c.name === nm);
+  /* wheels: a steer group at the hub (stays with the road, turns with the steering) holding a spin group; a caliper steers but does not spin */
+  const wheels = [];
+  ['FL', 'FR', 'RL', 'RR'].forEach((nm, i) => {
+    const h = hubs[i], steer = new THREE.Group(), spin = new THREE.Group(), wn = find('wheel_' + nm), cn = find('caliper_' + nm);
+    steer.position.set(h.x + dx, h.y, h.z); root.add(steer); steer.add(spin);
+    if (wn) for (const c of wn.children.slice()) spin.add(c);
+    if (cn) for (const c of cn.children.slice()) steer.add(c);
+    wheels.push({ steer, spin, angle: 0, restY: h.y });
+  });
+  /* steering wheel: turns about its own column (only where the model has it as a separate part) */
+  let wheelHub = null;
+  const sn = find('steer');
+  if (sn) {
+    const holder = new THREE.Group(), hub = new THREE.Group(), inner = new THREE.Group(), ax = new THREE.Vector3().fromArray(sn.userData.axis).negate().normalize();
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), ax);
+    holder.position.copy(sn.position); holder.quaternion.copy(q); inner.quaternion.copy(q).invert();
+    for (const c of sn.children.slice()) inner.add(c);
+    hub.add(inner); holder.add(hub); body.add(holder); wheelHub = hub;
+  }
+  for (const c of car.children.slice()) if (c !== sn && !/^(wheel|caliper)_/.test(c.name)) body.add(c);
+  /* lamps: a beam from each head light, a glow at every lamp */
+  const L = info.lamps || { head: { x: hubs[0].x + 0.55, y: 0.65, z: 0.6 }, tail: { x: hubs[2].x - 0.85, y: 0.85, z: 0.6 } };
+  const lights = [], halos = [], tails = [];
+  for (const s of [-1, 1]) {
+    const sp = new THREE.SpotLight(0xfff0dc, 3.2, 95, 0.46, 0.55, 1.2); sp.position.set(L.head.x + dx - 0.1, L.head.y, s * L.head.z);
+    const tg = new THREE.Object3D(); tg.position.set(30, -0.5 + L.head.y * 0.3, s * 1.5); root.add(sp); root.add(tg); sp.target = tg; lights.push(sp);
+  }
+  const sprite = (hex, size) => { const m = new THREE.SpriteMaterial({ map: opts.glowTex, color: hex, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false, opacity: 0.9 }); const s = new THREE.Sprite(m); s.scale.set(size, size, 1); return s; };
+  for (const s of [-1, 1]) { const h = sprite(0xfff0d8, 0.9); h.position.set(L.head.x + 0.08, L.head.y, s * L.head.z); body.add(h); halos.push(h); }
+  for (const s of [-1, 1]) { const h = sprite(0xff1a10, 1.2); h.position.set(L.tail.x - 0.1, L.tail.y, s * L.tail.z); h.material.opacity = 0; body.add(h); tails.push(h); }
+  const vis = {
+    root, pivot, wheels, extra: [], lights, halos, tails, wheelHub, R: hubs[0].r, type: id, real: true,
+    setPaint(hex) { for (const m of H.paint) m.color.copy(lin(hex)); },
+    setEnv(e) { for (const m of H.all) { m.envMap = e; m.needsUpdate = true; } },
+    setBrake(on) { for (const m of H.tail) m.emissiveIntensity = on ? 2.2 : 0.25; tails.forEach((t) => { t.material.opacity = on ? 0.9 : 0.12; }); },
+    setReverse() {},
+    setHead(hl) { for (const m of H.head) m.emissiveIntensity = hl * 1.5; },
+    dispose() {                                                                      // free the model's memory (graphics card included); the next visit loads it again
+      if (done[id] !== vis) return;
+      delete done[id]; delete raw[id];
+      const seen = new Set();
+      const kill = (m) => { if (!m || seen.has(m)) return; seen.add(m); for (const k of MAPS) if (m[k]) m[k].dispose(); m.dispose(); };
+      root.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); kill(o.material); } if (o.isSprite) o.material.dispose(); });
+      for (const m of model.materials) kill(m);
+      for (const m of H.all) kill(m);
+    },
+  };
+  return vis;
+}
+
+/* resolves to a vis, or rejects if the file cannot be fetched or parsed. spec: { url, a } where a is the centre-of-gravity-to-front-axle distance */
+function load(id, spec, opts) {
+  if (done[id]) return Promise.resolve(done[id]);
+  if (pending[id]) return pending[id];
+  const p = pending[id] = prefetch(id, spec.url).then((buf) => GLBLoader.build(buf, { anisotropy: opts.anisotropy || 1 })).then((model) => {
+    delete pending[id]; delete raw[id];
+    return (done[id] = assemble(id, model, spec, opts));
+  }, (e) => { delete pending[id]; delete raw[id]; throw e; });
+  return p;
+}
+const ready = (id) => done[id] || null;
+return { load, ready, prefetch };
+})();
+
 /* ---- game.js ---- */
 /* Downtown Drift: the endless highway. Garage, No Hesi scoring, traffic, game loop, camera, input and HUD. */
 (function () {
@@ -4517,8 +4847,9 @@ async function main() {
   if (typeof THREE === 'undefined') { fatal('The 3D library (three.js from cdnjs.cloudflare.com) did not load. Check the connection and reload.', ''); return; }
   say('Opening the garage');
   await tick(30);
-  let vehId = store.get('vehicle', 'kaze'); if (!Vehicles.byId[vehId]) vehId = 'kaze';
+  let vehId = store.get('car2', 'e92'); if (!Vehicles.byId[vehId]) vehId = 'e92';
   let veh = Vehicles.apply(P.SPEC, vehId);
+  if (veh.real) RealCar.prefetch(vehId, veh.real.glb).catch(() => { /* reported when the car is built */ });          // start the download while the renderer starts
   const camOf = (v) => { const c = v.cam; return { dist: c.dist, height: c.height, look: c.look, lookH: c.lookH, farDist: c.farDist, farHeight: c.farHeight, hoodX: c.hood[0], hoodY: c.hood[1], hoodZ: c.hood[2], cockX: c.cock[0], cockY: c.cock[1], cockZ: c.cock[2] }; };
   Object.assign(cfg.cam, camOf(veh));
   const cfg0 = JSON.parse(JSON.stringify(cfg));                          // the defaults the settings menu resets to
@@ -4535,20 +4866,56 @@ async function main() {
 
   say('Rolling out the ' + veh.name);
   await tick(20);
-  function makeVis(id) {
-    let v;
-    try { v = CarModel.build({ env: S.env, glowTex, type: id }); }
+  const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 1);
+  const realOpts = () => ({ env: S.env, glowTex, anisotropy: maxAniso });
+  const realSpec = (id) => { const d = Vehicles.byId[id]; return { url: d.real.glb, a: d.spec.a }; };
+  /* a car drawn from code: the built-in vehicles, and the stand-in for a real car whose model file could not be fetched */
+  function procVis(id) {
+    try { return CarModel.build({ env: S.env, glowTex, type: id }); }
     catch (e) {
       console.warn('car model failed, using placeholder', e);
       const root = new THREE.Group(), pivot = new THREE.Group(); root.add(pivot);
       const m = new THREE.Mesh(new THREE.BoxGeometry(4.3, 1.0, 1.8), new THREE.MeshStandardMaterial({ color: 0xdddddd })); m.position.y = 0.6; pivot.add(m);
       const wheels = []; for (const [x, z] of [[1.258, -0.77], [1.258, 0.77], [-1.362, -0.77], [-1.362, 0.77]]) { const st2 = new THREE.Group(), sp = new THREE.Mesh(new THREE.CylinderGeometry(0.325, 0.325, 0.25, 14), new THREE.MeshStandardMaterial({ color: 0x111111 })); sp.rotation.x = Math.PI / 2; st2.add(sp); st2.position.set(x, 0.325, z); root.add(st2); wheels.push({ steer: st2, spin: sp, angle: 0, restY: 0.325 }); }
-      v = { root, pivot, wheels, extra: [], lights: [], tails: [], halos: [], setPaint() {}, setBrake() {}, setReverse() {}, setEnv() {} };
+      return { root, pivot, wheels, extra: [], lights: [], tails: [], halos: [], setPaint() {}, setBrake() {}, setReverse() {}, setEnv() {} };
     }
-    scene.add(v.root); v.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    return v;
   }
-  let vis = makeVis(vehId);
+  const emptyVis = () => {                                                      // nothing to draw yet: the car shows up when its model has arrived
+    const root = new THREE.Group(), pivot = new THREE.Group(); root.add(pivot);
+    const wheels = []; for (let i = 0; i < 4; i++) wheels.push({ steer: new THREE.Group(), spin: new THREE.Group(), angle: 0, restY: 0.33 });
+    return { root, pivot, wheels, extra: [], lights: [], tails: [], halos: [], setPaint() {}, setBrake() {}, setReverse() {}, setEnv() {} };
+  };
+  const attach = (v) => { scene.add(v.root); if (!v.real) v.root.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return v; };
+  /* the first car: wait for its model, so the menu opens with it already turning on the stage */
+  async function bootVis(id) {
+    const d = Vehicles.byId[id];
+    if (!d.real) return attach(procVis(id));
+    say('Loading the ' + d.name);
+    try { return attach(await Promise.race([RealCar.load(id, realSpec(id), realOpts()), new Promise((res, rej) => setTimeout(() => rej(new Error('no answer after 25 s')), 25000))])); }
+    catch (e) { console.warn('model could not be loaded, drawing a stand-in', e); return attach(procVis(d.real.fallback)); }
+  }
+  let vis = await bootVis(vehId);
+
+  /* switching cars while playing: a real car that is not loaded yet is an empty stage with a note until it arrives */
+  function makeVis(id) {
+    const d = Vehicles.byId[id];
+    if (!d.real) return attach(procVis(id));
+    const have = RealCar.ready(id);
+    if (have) return attach(have);
+    const ph = attach(emptyVis()); loadNote(true);
+    RealCar.load(id, realSpec(id), realOpts()).then(
+      (rv) => { if (vehId === id && vis === ph) swapVis(ph, rv); else if (vehId !== id) rv.dispose(); },
+      (e) => { console.warn('model could not be loaded, drawing a stand-in', e); if (vehId === id && vis === ph) { swapVis(ph, procVis(d.real.fallback)); toast('MODEL FILE WOULD NOT LOAD · SHOWING A STAND-IN'); } });
+    return ph;
+  }
+  function swapVis(old, nv) {
+    scene.remove(old.root); vis = attach(nv);
+    setCamMode(st.cam); if (st.showroom && camera.parent !== scene) scene.add(camera);
+    if (st.showroom && stage.ready && stage.env && vis.setEnv) vis.setEnv(stage.env);
+    const c = SET && SET.get('car.color'); if (/^#[0-9a-f]{6}$/i.test(c || '')) vis.setPaint(parseInt(c.slice(1), 16));
+    hlPrev = -1; loadNote(false);
+  }
+  const loadNote = (on) => { if (pk.load) pk.load.hidden = !on; };
 
   /* ---------- effects ---------- */
   const smoke = new FX.Particles(scene, 640, { map: World3D.smokeTexture(), additive: false, gravity: 0.35, drag: 1.1 });
@@ -4870,7 +5237,7 @@ async function main() {
     const prev = mk('l', 'Previous car', '‹'), next = mk('r', 'Next car', '›');
     prev.addEventListener('click', (e) => { e.stopPropagation(); stepCar(-1); }); next.addEventListener('click', (e) => { e.stopPropagation(); stepCar(1); });
     const info = E('div', 'pinfo'), head = E('div', 'phead');
-    pk.count = E('span', 'pcount'); pk.drive = E('span', 'pdrive'); head.append(pk.count, pk.drive);
+    pk.count = E('span', 'pcount'); pk.drive = E('span', 'pdrive'); pk.load = E('span', 'pload', 'LOADING MODEL…'); pk.load.hidden = true; head.append(pk.count, pk.load, pk.drive);
     pk.name = E('h3', 'pname'); pk.cls = E('div', 'pcls'); pk.blurb = E('p', 'pblurb'); pk.stats = E('div', 'pstats'); pk.sw = E('div', 'pswatches');
     pk.dots = E('div', 'pdots'); Vehicles.list.forEach((v, i) => { const d = E('button', 'pdot'); d.type = 'button'; d.title = v.name; d.setAttribute('aria-label', v.name); d.addEventListener('click', (e) => { e.stopPropagation(); setVehicle(v.id, true); }); pk.dots.append(d); });
     pk.swb = PAINTS.map((p) => { const b = E('button', 'psw'); b.type = 'button'; b.style.background = hex6(p[1]); b.title = p[0]; b.setAttribute('aria-label', p[0]); b.dataset.v = hex6(p[1]); b.addEventListener('click', (e) => { e.stopPropagation(); setS('car.color', hex6(p[1])); refreshPicker(); }); pk.sw.append(b); return b; });
@@ -4879,7 +5246,7 @@ async function main() {
       inp.addEventListener('click', (e) => e.stopPropagation()); inp.addEventListener('input', () => { setS('car.color', inp.value); refreshPicker(); });
       lab.append(inp); pk.sw.append(lab); pk.cust = inp; pk.custLab = lab;
     }
-    head.insertBefore(pk.dots, pk.drive); info.append(head, pk.name, pk.cls, pk.blurb, pk.stats, pk.sw);
+    head.insertBefore(pk.dots, pk.load); info.append(head, pk.name, pk.cls, pk.blurb, pk.stats, pk.sw);
     el.append(prev, next, info);
     el.addEventListener('pointerdown', (e) => e.stopPropagation());
     document.body.append(el);
@@ -4893,6 +5260,10 @@ async function main() {
     pk.stats.textContent = '';
     for (const b of inf.bars) { const row = E('div', 'ps'), bar = E('i'), fill = E('u'); fill.style.width = (b[1] * 100).toFixed(0) + '%'; bar.append(fill); row.append(E('label', null, b[0]), bar, E('b', null, b[2])); pk.stats.append(row); }
     pk.stats.append(E('div', 'pf', inf.gears + ' gears · ' + fmtN.format(inf.mass) + ' kg'));
+    if (v.real) {                                                                       // the models are other people's work: say whose, and under what licence
+      const c = v.real.credit, a = (txt, href) => { const l = E('a', null, txt); l.href = href; l.target = '_blank'; l.rel = 'noopener noreferrer'; return l; }, row = E('div', 'pcredit');
+      row.append('3D model by ', a(c.by, c.url), ' · ', a(c.lic, c.licUrl)); pk.stats.append(row);
+    }
     const cur = SET ? SET.get('car.color') : null;
     pk.swb.forEach((b) => b.classList.toggle('on', b.dataset.v === cur));
     if (pk.cust) { const custom = !!cur && !pk.swb.some((b) => b.dataset.v === cur); pk.custLab.classList.toggle('on', custom); pk.custLab.style.background = custom ? cur : ''; if (cur && /^#[0-9a-f]{6}$/i.test(cur)) pk.cust.value = cur; }
@@ -5013,7 +5384,7 @@ async function main() {
     if (!Vehicles.byId[id]) return;
     if (id === vehId) { refreshPicker(); return; }
     SET.forgetPhysics();
-    vehId = id; store.set('vehicle', id);
+    vehId = id; store.set('car2', id);
     veh = Vehicles.apply(P.SPEC, id);
     const camV = camOf(veh); Object.assign(cfg.cam, camV); Object.assign(cfg0.cam, camV);
     car.refreshGeometry();
@@ -5201,6 +5572,7 @@ async function main() {
       for (const l of vis.lights) l.intensity = 3.2 * cfg.car.headBright * hl;
       for (const o of vis.halos || []) o.material.opacity = 0.9 * Math.min(1, hl * Math.min(1.5, cfg.car.headBright));
       if (vis.headMat) { const k = 0.18 + 0.82 * hl; vis.headMat.color.setRGB(1.0 * k, 0.95 * k, 0.85 * k); }
+      if (vis.setHead) vis.setHead(hl);
     }
     { const dimT = st.showroom ? 0.42 : 1; if (Math.abs(dimT - S.dim) > 0.004) S.setDim(S.dim + (dimT - S.dim) * Math.min(1, dt * 4.5)); }
     S.followSun(rpos.x, 0, -rpos.y); S.updateLampLights(rpos.x, -rpos.y);
